@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <title>iPlane</title>
+    <meta charset="utf-8">
+    <meta content="True" name="HandheldFriendly">
+    <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="signUp.css">
+    <link rel="stylesheet" href="phone.css">
+    <link rel="icon" href="logo.png">
+    <link rel="stylesheet" href="icofont.min.css">
+    <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">-->
+  </head>
+  <body>
+    <div class="main"  dir="rtl">
+      <div class="mainSignUp_header">
+        <h1>ثبت نام در <span style="font-family: 'Lalezar', cursive; font-size:100px;">پلانو</span></h1>
+      </div>
+      <section class="main_input">
+        <div class="main_input_atsign">@</div>
+          <form class="main_input_form_signUp">
+            <div class="main_input_line1">
+              <div class="main_input_line1_left">
+                <label id="lbl1" for="in_name_signUp">نام</label>
+                <input lang="fa" class="in in_firstLine" id="in_name_signUp" type="text" name="" value="" required autocomplete="off">
+              </div>
+              <div class="main_input_line1_right">
+                <label id="lbl2" for="in_user_signUp">نام کاربری</label>
+                <input lang="en" dir="ltr" class="in in_firstLine" id="in_user_signUp" type="text" name="" value="" required autocomplete="off">
+              </div>
+            </div>
+            <div class="main_input_line2">
+              <label id="lbl3" for="in_email_signUp">ایمیل</label>
+              <input class="in" dir="ltr" type="email" id="in_email_signUp" name="" value="" required autocomplete="off">
+            </div>
+            <div class="main_input_line3">
+              <label id="lbl4" for="in_pass_signUp">رمزعبور</label>
+              <input class="in" dir="ltr" type="password" id="in_pass_signUp" name="" value="" required autocomplete="off">
+            </div>
+            <div class="main_input_line4">
+              <div class="main_input_err"></div>
+              <button class="submit" id="signIn_submit" name="button">ثبت نام</button>
+            </div>
+            <p>شما با ثبت نام با <a href="#">شرایط</a> و <a href="#">قوانین</a> ما موافقت می کنید</p>
+          </form>
+      </section>
+    </div>
+    <div class="banner">
+      <p dir="rtl">از بهترین ها یاد بگیر و الهام بخش باش!</p>
+      <img src="ban1.webp" alt="Banner">
+      <span dir="rtl">طراحی شده توسط <a href="https://dribbble.com/tarka">پیتر تارکا</a> </span>
+    </div>
+    <footer>
+      <div class="footer_copyRight" dir="rtl">
+        &copy۱۳۹۹ همه ی حقوق برای <a class="logo" href="http://localhost:5000" style="padding-right:0;" >پلانو</a> محفوظ است.
+      </div>
+    </footer>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="script/jquery-3.5.1.slim.min.js"></script>
+    <script type="text/javascript" src="/script/script.js"></script>
+    <script src='https://kit.fontawesome.com/a076d05399.js'></script>
+    <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+  </body>
+</html>

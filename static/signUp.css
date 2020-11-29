@@ -1,0 +1,307 @@
+@import url('https://fonts.googleapis.com/css2?family=Texturina:wght@200;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lalezar&display=swap');
+@import url('https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.css');
+@font-face {
+  font-family: 'Segoe UI Web (West European)';
+  src: url('https://static2.sharepointonline.com/files/fabric/assets/fonts/segoeui-westeuropean/segoeui-semilight.woff2') format('woff2'), url('https://static2.sharepointonline.com/files/fabric/assets/fonts/segoeui-westeuropean/segoeui-semilight.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+}
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Vazir', sans-serif;
+}
+input:required {
+    box-shadow:none;
+}
+html{
+  --logo: #2ec6f8;
+  --title: #777;
+}
+body{
+  background-color: #fafafa;
+  overflow-x: hidden;
+}
+::-webkit-scrollbar {
+  display: none;
+}
+/*-----Android media setting-----*/
+.main{
+  position: relative;
+  width: 660px;
+  margin: auto;
+  right: 300px;
+  top: 40px;
+}
+.mainSignUp_header{
+  position: relative;
+  height: 100px;
+  margin: auto;
+  margin-top: 70px;
+  text-align: center;
+}
+.mainSignUp_header h1{
+  color: #777;
+  font-size: 80px;
+}
+.logo{
+  color: #2ec6f8;
+  font-size: 220px;
+  letter-spacing: 3px;
+  font-family: 'Lalezar', cursive;
+}
+.main_input{
+  text-align: center;
+  position: relative;
+  margin-top: 60px;
+  min-height: 10px;
+  top: 50px;
+}
+.main_input p{
+  margin: 20px 110px 0 0;
+  align-self: flex-start;
+  color: var(--title);
+}
+.main_input p a{
+  color: var(--title);
+  transition: color .4s;
+}
+.main_input p a:hover{
+  color: black;
+}
+.main_input_form{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.main_input_line1{
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+.main_input_line4{
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: center;
+  width: 450px;
+}
+.in{
+  border: none;
+  border: solid #999 .3px;
+  width: 450px;
+  height: 50px;
+  margin: 20px 30px 0 30px;
+  padding:30px;
+  font-size: 20px;
+  background: none;
+  color: #333;
+  outline: none;
+  border-radius: 10px;
+  transition: border .4s;
+}
+.in_firstLine{
+  width: 207px;
+}
+.main_input_err{
+  width: 225px;
+  word-wrap: break-word;
+  margin-top: 20px;
+  background: none;
+  color: red;
+  font-size: 15px;
+}
+#in_user_signUp{
+  padding-left: 40px;
+  margin: 20px 0 0 30px;
+}
+#in_user_signUp, #in_email_signUp{
+  font-family: 'Titillium Web', sans-serif;
+}
+label{
+  color: #aaa;
+  background: #fafafa;
+  position: absolute;
+  font-size: 15px;
+  padding: 0 10px;
+  margin: 8px 47px 0 0;
+  transition: all .3s;
+}
+#lbl2{
+  margin: 8px 25px 0 0;
+}
+.main_input_atsign{
+  font-size: 20px;
+  color: #ccc;
+  cursor: default;
+  position: absolute;
+  left: 128px;
+  top: 50px;
+  transform: translate(-50%, -50%);
+  transition: all .3s;
+}
+.submit{
+  outline: none;
+  cursor: pointer;
+  border-radius: 20px;
+  border: none;
+  width: 225px;
+  height: 70px;
+  margin: 20px 0 0 0;
+  padding: 5px 30px;
+  font-size: 30px;
+  background-color: var(--logo);
+  color: white;
+  align-self: flex-start;
+}
+.banner{
+  display: block;
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translate(-100%, -50%);
+  height: 100%;
+  width: 600px;
+  overflow: hidden;
+  background-color: #ecbdcf;
+}
+.banner p{
+  position: absolute;
+  left: 50%;
+  top: 20%;
+  transform: translate(-50%, -50%);
+  font-size: 50px;
+  color: #bb4a73;
+  text-align: right;
+  width: 70%;
+  font-weight: bolder;
+}
+.banner img{
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  transform: translate(-50%, -50%);
+  height: 450px;
+  min-width: 30%;
+}
+.banner span{
+  position: absolute;
+  left: 75%;
+  top: 90%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  color: #bb4a73;
+  text-align: right;
+  font-weight: bolder;
+  width: 200px;;
+}
+.banner a{
+  color: #bb4a73;
+}
+footer{
+  position: relative;
+  width: 800px;
+  margin: auto;
+  border-top: solid #999 .3px;
+  margin-top: 240px;
+  right: 300px;
+}
+.footer_copyRight{
+  cursor: default;
+  color: #666;
+  text-align: center;
+}
+.footer_copyRight a{
+  color: none;
+  font-size: 20px;
+  letter-spacing: 0;
+  cursor: pointer;
+  color: #666;
+  opacity: .7;
+  transition: all .3s;
+  text-decoration: none;
+}
+.footer_copyRight a:hover{
+  opacity: 1;
+  text-decoration: underline;
+}
+/*----Iphone media setting----*/
+@media screen and (min-width: 300px) and (max-width: 900px){
+  .main{
+    width: 506px;
+    height: 612px;
+    right: 0;
+    top: 0;
+    margin: auto;
+  }
+  .mainSignUp_header{
+    text-align: center;
+    width: 400px;
+    top: 120px;
+  }
+  .mainSignUp_header h1{
+    line-height: 60px;
+    padding: 0 30px;
+    font-size: 40px;
+  }
+  .mainSignUp_header h1 span{
+    font-size: 50px !important;
+  }
+  .main_input{
+    width: 100%;
+    text-align: center;
+    position: relative;
+    margin-top: 70px;
+    min-height: 10px;
+  }
+  footer{
+    border: none;
+    width: 500px;
+    margin:none;
+    margin-top: 210px;
+    right: 0;
+  }
+  .sign{
+    position: absolute;
+    height: 70px;
+    transform: translate(0%, 0);
+    left: 0;
+    top: -30px;
+  }
+  .main_input_atsign{
+    left: 120px;
+    top: 55px;
+  }
+  .banner{
+    display: none;
+  }
+  .main_input_line1{
+    flex-direction: column;
+  }
+  .main_input_line4{
+    flex-direction: column;
+  }
+  .submit{
+    width: 450px;
+  }
+  .in_firstLine{
+    width: 450px;
+  }
+  .main_input_atsign{
+    left: 50px;
+    top: 133px;
+  }
+  #in_user_signUp{
+    margin: 20px 30px 0 30px;
+  }
+  .main_input p{
+    margin: 20px 0px 0 0;
+    align-self: center;
+    color: var(--title);
+  }
+})
