@@ -4,9 +4,17 @@ $(document).ready(function () {
   var loginPass = $('#in_pass_logIn').val();
   const color =['#EEB1B1', '#E3EEB1', '#B1BDEE', '#ddd', '#B1EECA', '#EEDBB1'];
   var table = {};
+  var confirmEmailNotif =[];
   table['table'] = {};
-
-
+  var emailVerifyCode;
+  //detect browser
+  var isChrome = !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime);
+  var isFirefox = typeof InstallTrigger !== 'undefined';
+  var isEdge = !isIE && !!window.StyleMedia;
+  var isEdgeChromium = isChrome && (navigator.userAgent.indexOf("Edg") != -1);
+  var isOpera = (!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
+  var isSafari = /constructor/i.test(window.HTMLElement) || (function (p) { return p.toString() === "[object SafariRemoteNotification]"; })(!window['safari'] || (typeof safari !== 'undefined' && window['safari'].pushNotification));
+  var isIE = /*@cc_on!@*/false || !!document.documentMode;
 
   function sinceTime(date) {
     let date1 = date.split(' ')[0], time = date.split(' ')[1]
@@ -21,31 +29,40 @@ $(document).ready(function () {
     if (nm<10)  nm = '0'+d.getMonth();
     if (oy == ny) {
       if (om == nm) {
-        if (od == nd) {
-          if (nh == oh) {
+        if (nd == od) {
+          if (nh == oh ) {
             if (nmin == omin) {
-              if (ns-os<60) {
-                cTime = cTime + 'لحظاتی پیش'
+              if (ns == os) {
+                cTime = cTime + 'همین الان'
               }
+            }else if (+ns+Math.abs(nmin - omin)*60-os < 60) {
+              cTime = +ns+Math.abs(nmin - omin)*60-os;
+              cTime = cTime + ' ثانیه پیش'
             }else {
-              cTime = nmin-omin;
+              cTime = nmin - omin
               cTime = cTime + ' دقیقه پیش'
             }
+          }else if (+nmin+Math.abs(nh - oh)*60-omin < 60) {
+            cTime = +nmin+Math.abs(nh - oh)*60-omin;
+            cTime = cTime + ' دقیقه پیش'
           }else {
-            cTime = nh-oh;
+            cTime = nh - oh
             cTime = cTime + ' ساعت پیش'
           }
+        }else if (+nh+Math.abs(nd - od)*24-oh < 24) {
+          cTime = +nh+Math.abs(nd - od)*24-oh;
+          cTime = cTime + ' ساعت پیش'
         }else {
-          cTime = nd-od;
+          cTime = nd - od
           cTime = cTime + ' روز پیش'
         }
       }else {
-        cTime = nm-om;
-        cTime = cTime + ' ماه پیش'
+        cTime = +nd+Math.abs(nm - om)*30-od;
+        cTime = cTime + ' روز پیش';
       }
     }else {
-      cTime = ny-oy;
-      cTime = cTime + ' سال پیش'
+      cTime = +nm+Math.abs(ny - oy)*12-om;
+      cTime = cTime + ' ماه پیش'
     }
     return cTime;
   }
@@ -70,6 +87,10 @@ $(document).ready(function () {
       socket.emit('verify', {loginUser, loginPass});
     }
   }
+  //getting server notifs
+  socket.on('confirmEmailNotif', function (c) {
+    confirmEmailNotif = c;
+  })
   $('.signUp').click(function () {
     location.href="signUp.html";
   });
@@ -170,7 +191,6 @@ $(document).ready(function () {
     //storedPass = $('.storepass').val();
     //storedEmail = $('.storeemail').val();
     event.preventDefault();
-    console.log(username);
     if (checkIfAllIsRight4email && checkIfAllIsRight4user) {
       localStorage.setItem("username", username);
       localStorage.setItem("password", pass);
@@ -261,13 +281,7 @@ $(document).ready(function () {
                   </div>
                   <div style="right:70px;" class="setting_popUp_window"  id="notif_popUp">
                     <div class="setting_popUp_window_trngl"></div>
-                    <div class="setting_popUp_window_content">
-                      <div class="newPlan setting_popUp_window_content_newPln dis_flex_dir_row_jsf_cntr_itmalign_cntr">
-                        <div class="notif_content">
-                          <h3 dir="rtl">تایید ایمیل</h3>
-                          <p style="color: #aaa" dir="rtl">ما برای بازیابی اطلاعات شخصی شما به یک ایمیل تایید شده نیاز داریم.اگر ایمیل خود را ...</p>
-                        </div>
-                      </div>
+                    <div class="setting_popUp_window_content notif_alarm_sec">
                     </div>
                   </div>
                 </div>
@@ -285,8 +299,12 @@ $(document).ready(function () {
               </div>
             </div>
           </nav>
+          <div dir="rtl" class="notif_section dis_flex_dir_row_jsf_cntr_itmalign_cntr">
+            <span class="material-icons notif_section_close">close</span>
+            <p></p>
+          </div>
           <section class="main_section dis_flex_dir_row_jsf_cntr_itmalign_cntr">
-            <div class="main_section_main"></div>
+            <div class="main_section_main "></div>
             <div class="main_section_ctrl">
               <div class="newPlan main_section_newPlan pos_abs_cntr">
                 <div class="newPlan_icon pos_abs_cntr">
@@ -295,15 +313,56 @@ $(document).ready(function () {
               </div>
             </div>
           </section>
+          <div class="confirm_email_window pos_abs_cntr">
+            <form class="confirm_email_form dis_flex_dir_col_jsf_cntr_itmalign_cntr pos_abs_cntr">
+              <h1>کد را وارد نمایید</h1>
+              <p></p>
+              <div class="confirm_email_row dis_flex_dir_row_jsf_cntr_itmalign_cntr">
+                <input id="confirmEmail" class="inEmailV" type="text" placeholder="_ _ _ _ _ _" maxlength="7">
+              </div>
+              <div class="confirm_email_row dis_flex_dir_row_jsf_cntr_itmalign_cntr">
+                <button id="emailVerifySubmit" class="submitEmailV" name="button">بررسی کد تایید</button>
+              </div>
+            </form>
+          </div>
+          <div class="blackArea_confirmE"></div>
         </div>`);
+      setTimeout(function () {
+        if (confirmEmailNotif != '') {
+          $('.notif_section').css('display','flex');
+          $('.main_nav_profile_icon_alarm').css('display','block !important');
+          for (var i = 0; i < confirmEmailNotif.length; i++) {
+            $('.notif_alarm_sec').append(`
+              <div class="setting_popUp_window_content_newPln setting_popUp_window_content_notif dis_flex_dir_row_jsf_cntr_itmalign_cntr confirm_email" readed="false">
+                <div class="notif_content">
+                  <h3 dir="rtl" class="dis_flex_dir_row_jsf_cntr_itmalign_cntr">${confirmEmailNotif[i].title} (<span class="material-icons">notification_important</span>)</h3>
+                  <p style="color: #aaa" dir="rtl">${confirmEmailNotif[i].content}</p>
+                </div>
+              </div>
+              `)
+          }
+          $('.notif_section p').append(`<b>هشدار مهم:</b> ما برای احراز هویت و همچنین بازیابی اطلاعات شخصی شما به یک ایمیل تایید شده نیاز داریم.<span class="confirm_email"> لطفا ایمیل خود را تایید کنید</span>. اگر ایمیل شما تایید نشود متاسفانه حساب شما پس از سه روز حذف خواهد شد. <a href="#">بیشتر بدانید</a> `)
+        }
+      }, 40);
+    setTimeout(function () {
       if (localStorage.getItem("alarm") == 'none') {
         $('.main_nav_profile_icon_alarm').css('display','none');
       }
+      /*if (localStorage.getItem('notifSection') == 'close') {
+        $('.notif_section').css({'display':'none'});
+        $('.notif_section p').empty();
+      }*/
+    }, 41);
     }
   });
 
   //getting tables
   socket.on('loadPlans', function (t) {
+    //notification permission
+    if (Notification.permission === "default") {
+      alert('برای آگاهی از اعلان هایتان، حتی زمانی که روی صفحه برنامه نیستید، اجازه دسترسی اعلان ها را فعال کنید.')
+      Notification.requestPermission()
+    }
     if (t != '') {
       if ($('myPlan_cont').length == 0) {
         $('.main_section_main').append('<div class="myPlan_cont dis_flex_dir_row_jsf_cntr_itmalign_cntr"></div>')
@@ -319,7 +378,6 @@ $(document).ready(function () {
         if (category == '') {
           category = 'پیش فرض';
         }
-        console.log(t[i].likes);
         for (var j = 0; j < Object.keys(t[i].likes).length; j++) {
           if (t[i].likes[j] == loginUser) {
             likeHtml = 'favorite';
@@ -330,9 +388,9 @@ $(document).ready(function () {
         else if (condition == 'prsnl') {iconMain = 'work';icon_2 = 'public';icon_3 = 'lock'; statusMain = 'خصوصی'; status_2 = 'عمومی'; status_3 = 'شخصی';}
         else if (condition == 'prvt') {iconMain = 'lock';icon_2 = 'public';icon_3 = 'work'; statusMain = 'شخصی'; status_2 = 'عمومی'; status_3 = 'خصوصی';}
         $('.myPlan_cont').prepend(`
-          <div class="myPlan dis_flex_dir_col_jsf_cntr_itmalign_cntr myPlan_prsnl" id="${planId}" name="${title}">
+          <div class="myPlan dis_flex_dir_col_jsf_cntr_itmalign_cntr myPlan_${condition}" id="${planId}" name="${title}">
             <div class="myPlan_body">
-              <div class="myPlan_body_hed dis_flex_dir_row_jsf_cntr_itmalign_cntr myPlan_prsnl">
+              <div class="myPlan_body_hed dis_flex_dir_row_jsf_cntr_itmalign_cntr myPlan_${condition}">
                 <div class="myPlan_body_title">
                   <h5>${category}/</h5>
                   <h1><strong>${title}</strong></h1>
@@ -366,11 +424,11 @@ $(document).ready(function () {
 
             </div>
             <div class="myPlan_info dis_flex_dir_rrow_jsf_cntr_itmalign_cntr myPlan_${condition}" for="${planId}">
-              <div numCont="${planId}likeNumCont" class=" myPlan_info_icon_cont myPlan_info_icon_cont_like dis_flex_dir_row_jsf_cntr_itmalign_cntr" for="${planId}" status="${condition}" liked="${likeControler}">
+              <div numCont="${planId}likeNumCont" class=" myPlan_info_icon_cont myPlan_info_icon_cont_like dis_flex_dir_row_jsf_cntr_itmalign_cntr" username="${loginUser}" for="${planId}" status="${condition}" liked="${likeControler}">
                 <span class="material-icons myPlan_info_icon myPlan_info_icon_like" for="${planId}">${likeHtml}</span>
                 <p id="${planId}likeNumCont" for="${planId}">${likeNum}</p>
               </div>
-              <div class=" myPlan_info_icon_cont myPlan_info_icon_cont_watch dis_flex_dir_row_jsf_cntr_itmalign_cntr">
+              <div class=" myPlan_info_icon_cont myPlan_info_icon_cont_watch dis_flex_dir_row_jsf_cntr_itmalign_cntr" username="${loginUser}">
                 <span class="material-icons myPlan_info_icon myPlan_info_icon_watch">remove_red_eye</span>
                 <p>${watcheNum}</p>
               </div>
@@ -409,7 +467,6 @@ $(document).ready(function () {
       $(this).attr('isOpen','false')
     }
     let s = $(e.target).attr('thisStatus'), status;
-    console.log(s);
     if (s == 'public') status = 'pblc';
     else if (s == 'work') status = 'prsnl';
     else if (s == 'lock') status = 'prvt';
@@ -449,27 +506,37 @@ $(document).ready(function () {
 
 
   //like handle
-  $('.primary').on('click', '.myPlan_info_icon_cont_like',function () {
+  $('.primary').on('click', '.myPlan_info_icon_cont_like, .third_user_plan_info_icon_cont_like',function () {
+    let targetUser = $(this).attr('username');
     let pID = $(this).attr('for'), isLiked = $(this).attr('liked');
     let numContId = $(this).attr('numCont');
     let likeNumber = $('#'+numContId+'').html();
     if (isLiked == 'false') {
-      $('.myPlan_info_icon_like[for="'+pID+'"]').text('favorite')
+      $('.myPlan_info_icon_like[for="'+pID+'"], .third_user_plan_info_icon_like[for="'+pID+'"]').text('favorite')
       $(this).attr('liked', 'true');
-      socket.emit('like', {pID, loginUser});
+      socket.emit('like', {pID, targetUser, loginUser});
       $('#'+numContId+'').html(+likeNumber+1);
     }else {
-      $('.myPlan_info_icon_like[for="'+pID+'"]').text('favorite_border');
+      $('.myPlan_info_icon_like[for="'+pID+'"], .third_user_plan_info_icon_like[for="'+pID+'"]').text('favorite_border');
       $(this).attr('liked', 'false');
-      socket.emit('unlike', {pID, loginUser})
+      socket.emit('unlike', {pID, targetUser, loginUser})
       $('#'+numContId+'').html(+likeNumber-1);
     }
   })
-  /*watch handle
-  $('.primary').on('click', '.myPlan',function () {
-    let pID = $(this).attr('id');
-    socket.emit('watch', {pID, loginUser});
-  })*/
+  //server like handle
+  socket.on('changeLikeIcon', function (res) {
+    let pID = res.pId;
+    let isLiked = $('.third_user_plan_info_icon_cont_like[for="'+pID+'"]').attr('liked');
+    let numContId = $('.third_user_plan_info_icon_cont_like[for="'+pID+'"]').attr('numCont');
+    let likeNumber = $('#'+numContId+'').html();
+    if ($('.third_user_plan_info_icon_like[for="'+pID+'"]').length != 0) {
+      if (res.action == true) {
+        $('#'+numContId+'').html(+likeNumber+1);
+      }else {
+        $('#'+numContId+'').html(+likeNumber-1);
+      }
+    }
+  })
 
   $('.primary').on('click', '.main_nav_profile_new', function (e) {
     $('#new_popUp').css('display','flex');
@@ -489,6 +556,10 @@ $(document).ready(function () {
     $('.setting_popUp_window').css('display','none');
     $('.blackArea_1').css('display','none');
   })
+  $('.primary').on('click', '.blackArea_confirmE', function (e) {
+    $('.confirm_email_window').css({'display':'none'});
+    $('.blackArea_confirmE').css({'display':'none'});
+  })
   //create a plan
   $('.primary').on('click', '.newPlan', function (e) {
     table['table'] = {};
@@ -496,6 +567,7 @@ $(document).ready(function () {
     $('.main_section_ctrl').css('display','none');
     $('.main_section_main').empty();
     $('.blackArea_1').css('display','none');
+    $('.main_section_main').removeClass('dis_flex_dir_row_jsf_cntr_itmalign_cntr');
     $('.main_section_main').append(`
       <div class="main_section_main_createPlan">
         <h1 dir="rtl">یک برنامه جدید بسازید</h1>
@@ -680,9 +752,7 @@ $(document).ready(function () {
         </div>
         `);
         $('.table_row_colContainer').scrollLeft($('.table_row_colContainer').width());
-        console.log($('.table_row_colContainer').width());
     }
-    console.log(table);
   })
   //add column for deleted column
   $('.primary').on('click', '.add_col_ex',function (e) {
@@ -737,7 +807,6 @@ $(document).ready(function () {
     let r = $(this).attr('rowNum')
     let c = $(this).attr('colId')
     table['table']['row'+r]['col'+c]['content'] = content;
-    console.log(table);
   })
 
   //delete column
@@ -749,16 +818,13 @@ $(document).ready(function () {
       delete table['table']['row1']['col'+c];
       var a = rowCol[0][c-1];
       for (var i = 1; i < rowCol.length; i++) {
-        console.log(rowCol[i]);
         var x = rowCol[i].indexOf(a);
-        console.log(x);
         if (x != -1) {
           rowCol[i].splice(x, 1);
           let z = i+1, y = x +1
           delete table['table']['row'+z]['col'+y];
         }
       }
-      console.log(table);
     }else {
       $(this).parent().empty();
       $('.table_col[id="row'+r+'_col'+c+'"]').html(`
@@ -787,7 +853,6 @@ $(document).ready(function () {
       delete table['table']['row'+r];
       $(this).parent().remove();
     }
-    console.log(table);
   })
 
 
@@ -797,7 +862,6 @@ $(document).ready(function () {
     if ($(this).css('color') != 'rgb(46, 198, 248)') {
       $(this).css('color','var(--logo)');
       table['table']['row'+r]['col'+c]['lock'] = true;
-      console.log(table);
     }else {
       $(this).css('color','#999');
       table['table']['row'+r]['col'+c]['lock'] = '';
@@ -815,7 +879,6 @@ $(document).ready(function () {
     $('.'+id+'_textOp').css('color','#999');
     $(this).css('color','#333');
     table['table']['row'+r]['col'+c]['align'] = 'r';
-    console.log(table);
   })
   $('.primary').on('click', '.c_op', function (e) {
     let r = $(this).attr('rowNum')
@@ -825,7 +888,6 @@ $(document).ready(function () {
     $('.'+id+'_textOp').css('color','#999');
     $(this).css('color','#333');
     table['table']['row'+r]['col'+c]['align'] = 'c';
-    console.log(table);
   })
   $('.primary').on('click', '.l_op', function (e) {
     let r = $(this).attr('rowNum')
@@ -835,7 +897,6 @@ $(document).ready(function () {
     $('.'+id+'_textOp').css('color','#999');
     $(this).css('color','#333');
     table['table']['row'+r]['col'+c]['align'] = 'l';
-    console.log(table);
   })
 
   //submit and send plan to server
@@ -863,20 +924,20 @@ $(document).ready(function () {
   $('.primary').on('click', '#setting_popUp_window_content_exit', function () {
     localStorage.setItem('username', '');
     localStorage.setItem('password', '');
+    localStorage.removeItem("alarm");
+    localStorage.removeItem('notifSection');
     location.href="logIn.html";
   })
 
 
   //get table
   socket.on('giveTable', function (t) {
-    console.log(t);
   })
   //get search resault
   socket.on('searchLiveResault', function (r) {
     $('.search_resault').empty();
     t = r.srchRes, rTime = r.timeRes;
-    //console.log(rTime);
-    let clicked = 'false', reqIcon = 'aforward', reqTxt = 'درخواست دوستی', reqStyle = 'background : none';
+    let reqStatus = 'false', reqIcon = 'aforward', reqTxt = 'درخواست دوستی', reqStyle = 'background : none';
     if (!t) {
       $('.search_resault').empty();
       $('.search_resault').append(`
@@ -887,18 +948,39 @@ $(document).ready(function () {
       }else {
         $('.search_resault').empty();
         for (var i = 0; i < t.length; i++) {
-          if (t[i].friendReqToMe) {
+          if (t[i].friendReqFromMe.length != 0) {
+            t[i].friendReqFromMe.forEach((item, k) => {
+            console.log(item);
+              if (item == loginUser) {
+                reqStatus= 'waitForMe';
+                reqIcon = 'access_time';
+                reqTxt = 'دریافت شده';
+                reqStyle = 'background-color : #00695C; border:none; color:white;';
+              }
+            });
+          }
+          if (t[i].friendReqToMe.length != 0) {
             t[i].friendReqToMe.forEach((item, k) => {
               if (item == loginUser) {
-                clicked= 'true';
+                reqStatus= 'waitForHim';
                 reqIcon = 'access_time';
                 reqTxt = 'ارسال شده';
                 reqStyle = 'background-color : #E0F7FA';
               }
             });
           }
+          if (t[i].friends.length != 0) {
+            t[i].friends.forEach((item, k) => {
+              if (item == loginUser) {
+                reqStatus= 'true';
+                reqIcon = 'person';
+                reqTxt = 'دوست هستید';
+                reqStyle = 'background : none; border: solid var(--logo) 1px; color:var(--logo);';
+              }
+            });
+          }
           $('.search_resault').append(`
-            <div class="search_resault_user dis_flex_dir_col_jsf_cntr_itmalign_cntr" username="${t[i].username}">
+            <div class="search_resault_user open_user_page dis_flex_dir_col_jsf_cntr_itmalign_cntr" username="${t[i].username}">
               <div class="search_resault_user_profile dis_flex_dir_row_jsf_cntr_itmalign_cntr">
                 <div class="search_resault_user_profilePrim dis_flex_dir_row_jsf_cntr_itmalign_cntr">
                   <div class="search_resault_user_profile_pic">
@@ -909,7 +991,7 @@ $(document).ready(function () {
                     <p dir="ltr">@${t[i].username}</p>
                   </div>
                 </div>
-                <div style="${reqStyle}" class="search_resault_user_profile_friendRec dis_flex_dir_row_jsf_cntr_itmalign_cntr" username="${t[i].username}" clicked="${clicked}">
+                <div style="${reqStyle}" class="search_resault_user_profile_friendRec dis_flex_dir_row_jsf_cntr_itmalign_cntr" username="${t[i].username}" reqStatus="${reqStatus}">
                   <div class="search_resault_user_profile_friendRec_cont dis_flex_dir_row_jsf_cntr_itmalign_cntr">
                     <span class="material-icons search_resault_user_profile_friendRecIcon">${reqIcon}</span>
                     <p class="search_resault_user_profile_friendRecText">${reqTxt}</p>
@@ -919,7 +1001,7 @@ $(document).ready(function () {
               <div class="search_resault_user_plans  dis_flex_dir_row_jsf_cntr_itmalign_cntr" id="${t[i].username}SearchPlans"></div>
               <div class="search_resault_user_social dis_flex_dir_rrow_jsf_cntr_itmalign_cntr">
                 <div class="search_resault_user_social_friends dis_flex_dir_row_jsf_cntr_itmalign_cntr" friendsNum="${t[i].friends.length}">
-                  <span class="search_resault_user_social_friendsNum">${t[i].friends.length}</span>
+                  <span class="search_resault_user_social_friendsNum" username="${t[i].username}">${t[i].friends.length}</span>
                   <p class="search_resault_user_social_friends_title">دوست</p>
                 </div>
                 <div class="search_resault_user_social_plans dis_flex_dir_row_jsf_cntr_itmalign_cntr" plansNum="${rTime[i].length}">
@@ -989,35 +1071,422 @@ $(document).ready(function () {
   //send friend request
   $('.primary').on('click', '.search_resault_user_profile_friendRec', function (e) {
     let user = $(this).attr('username');
+    let reqStatus = $('.search_resault_user_profile_friendRec[username="'+user+'"]').attr('reqStatus')
     if (user != loginUser) {
       socket.emit('searchClick', user);
     }
-    if ($('.search_resault_user_profile_friendRec[username="'+user+'"]').attr('clicked') == 'true') {
+    if (reqStatus == 'true') {
+      socket.emit('cancelFriendShip', {user, loginUser});
+    }else if (reqStatus == 'waitForHim'){
       socket.emit('cancelFriendRec', {user, loginUser});
-    }else {
+    }else if (reqStatus == 'waitForMe'){
+      socket.emit('acceptFriendRec', {user, loginUser});
+    }else if (reqStatus == 'false'){
       socket.emit('sendFriendRec', {user, loginUser});
+        $('.third_user_profile_friend_req').css({'box-shadow': 'none'})
     }
     e.stopPropagation()
   })
-  //gettingg resault
+  // .. in third user profile
+  $('.primary').on('click', '.third_user_profile_friend_req', function () {
+    let user = $(this).attr('username');
+    let reqStatus = $(this).attr('reqStatus');
+    if (reqStatus == 'true') {
+      socket.emit('cancelFriendShip', {user, loginUser});
+    }else if (reqStatus == 'waitForHim'){
+      socket.emit('cancelFriendRec', {user, loginUser});
+    }else if (reqStatus == 'waitForMe'){
+      socket.emit('acceptFriendRec', {user, loginUser});
+    }else if (reqStatus == 'false'){
+      socket.emit('sendFriendRec', {user, loginUser});
+        $('.third_user_profile_friend_req').css({'box-shadow': 'none'})
+    }
+  })
+
+  //third user friend rec button hover
+  $('.primary').on('mouseover', '.third_user_profile_friend_req', function (e) {
+    let reqStatus = $(this).attr('reqStatus');
+    if (reqStatus == 'false') {
+      $('.third_user_profile_friend_req').css({'box-shadow': '3px 3px 5px rgba(0, 0, 0, .1)'})
+    }if (reqStatus == 'waitForHim') {
+      $('.third_user_profile_friend_req').css({'background-color': 'var(--logo)','border': 'none','color': 'white'})
+      $('.third_user_profile_friend_req').html('لغو درخواست');
+    }else if (reqStatus == 'waitForMe') {
+      $('.third_user_profile_friend_req').html('پذیرش دوستی');
+      $('.third_user_profile_friend_req').css({'background-color': '#827717','border': 'none','color': 'white'})
+    }else if (reqStatus == 'true') {
+      $('.third_user_profile_friend_req').html('لغو دوستی');
+      $('.third_user_profile_friend_req').css({'background-color': '#D32F2F','border': 'none','color': 'white'})
+    }
+  })
+  $('.primary').on('mouseout', '.third_user_profile_friend_req', function (e) {
+    let reqStatus = $(this).attr('reqStatus');
+    if (reqStatus == 'false') {
+      $('.third_user_profile_friend_req').css({'box-shadow': 'none'})
+    }if (reqStatus == 'waitForHim') {
+      $('.third_user_profile_friend_req').css({'background-color': '#E0F7FA','border': 'solid var(--logo) 1px ','color': 'var(--logo)'})
+      $('.third_user_profile_friend_req').html('ارسال شده');
+    }else if (reqStatus == 'waitForMe') {
+      $('.third_user_profile_friend_req').html('دریافت شده');
+      $('.third_user_profile_friend_req').css({'background-color':'#00695C','border':'none','color':'white'})
+
+    }else if (reqStatus == 'true') {
+      $('.third_user_profile_friend_req').html('دوست هستید');
+      $('.third_user_profile_friend_req').css({'background': 'none','border': 'solid var(--logo) 1px ','color': 'var(--logo)'})
+    }
+  })
+
+
+  //gettingg friendShip action result
   socket.on('requestedForFriendship', function (r) {
-    $('.search_resault_user_profile_friendRec[username="'+r+'"]').attr('clicked','true')
+    $('.search_resault_user_profile_friendRec[username="'+r+'"]').attr('reqStatus','waitForHim')
     $('.search_resault_user_profile_friendRec[username="'+r+'"] div p').text('ارسال شد')
     $('.search_resault_user_profile_friendRec[username="'+r+'"] div span').html('access_time')
     $('.search_resault_user_profile_friendRec[username="'+r+'"]').css('background-color','#E0F7FA')
+    $('.third_user_profile_friend_req[username="'+r+'"]').attr('reqStatus','waitForHim')
+    $('.third_user_profile_friend_req[username="'+r+'"]').text('ارسال شد')
+    $('.third_user_profile_friend_req[username="'+r+'"]').css({'background-color': '#E0F7FA','border': 'solid var(--logo) 1px ','color': 'var(--logo)'})
   })
   socket.on('canceledForFriendship', function (r) {
-    $('.search_resault_user_profile_friendRec[username="'+r+'"]').attr('clicked','false')
+    $('.search_resault_user_profile_friendRec[username="'+r+'"]').attr('reqStatus','false')
     $('.search_resault_user_profile_friendRec[username="'+r+'"] div p').text('درخواست دوستی')
     $('.search_resault_user_profile_friendRec[username="'+r+'"] div span').html('aforward')
     $('.search_resault_user_profile_friendRec[username="'+r+'"]').css('background','none')
+    $('.third_user_profile_friend_req[username="'+r+'"]').attr('reqStatus','false')
+    $('.third_user_profile_friend_req[username="'+r+'"]').text('درخواست دوستی')
+    $('.third_user_profile_friend_req[username="'+r+'"]').css({'background':'none','border': 'solid var(--logo) 1px ','color': 'var(--logo)'})
+  })
+  socket.on('FcanceledForFriendship', function (r) {
+    $('.search_resault_user_profile_friendRec[username="'+r+'"]').attr('reqStatus','false')
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div p').text('درخواست دوستی')
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div span').html('aforward')
+    $('.search_resault_user_profile_friendRec[username="'+r+'"]').css('background','none')
+    $('.third_user_profile_friend_req[username="'+r+'"]').attr('reqStatus','false')
+    $('.third_user_profile_friend_req[username="'+r+'"]').text('درخواست دوستی')
+    $('.third_user_profile_friend_req[username="'+r+'"]').css({'background':'none','border': 'solid var(--logo) 1px ','color': 'var(--logo)'});
+    let friends = $(`.third_user_profile_friendNumber[username=${r}]`).html();
+    $(`.third_user_profile_friendNumber[username=${r}]`).html(+friends-1);
+    let friendsS = $(`.search_resault_user_social_friendsNum[username=${r}]`).html();
+    $(`.search_resault_user_social_friendsNum[username=${r}]`).html(+friendsS-1);
+    let mfriendsS = $(`.search_resault_user_social_friendsNum[username=${loginUser}]`).html();
+    $(`.search_resault_user_social_friendsNum[username=${loginUser}]`).html(+mfriendsS-1);
+  })
+  socket.on('acceptFriendship', function (r) {
+    $('.search_resault_user_profile_friendRec[username="'+r+'"]').attr('reqStatus','true')
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div p').text('دوست هستید');
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div span').html('person');
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div p').css({'color': 'var(--logo)'});
+    $('.search_resault_user_profile_friendRec[username="'+r+'"]').css({'background':'none','border': 'solid var(--logo) 1px ','color': 'var(--logo)'});
+    $('.third_user_profile_friend_req[username="'+r+'"]').attr('reqStatus','true')
+    $('.third_user_profile_friend_req[username="'+r+'"]').text('دوست هستید');
+    $('.third_user_profile_friend_req[username="'+r+'"]').css({'background':'none','border': 'solid var(--logo) 1px ','color': 'var(--logo)'});
+    $(`.third_user_plans_blur`).css({'visibility':'hidden', 'opacity':'0'});
+    let friends = $(`.third_user_profile_friendNumber[username=${r}]`).html();
+    $(`.third_user_profile_friendNumber[username=${r}]`).html(+friends+1)
+    let friendsS = $(`.search_resault_user_social_friendsNum[username=${r}]`).html();
+    $(`.search_resault_user_social_friendsNum[username=${r}]`).html(+friendsS+1);
+    let mfriendsS = $(`.search_resault_user_social_friendsNum[username=${loginUser}]`).html();
+    $(`.search_resault_user_social_friendsNum[username=${loginUser}]`).html(+mfriendsS+1);
+  })
+  socket.on('requestForFriendship', function (r) {
+    let notifBody = 'برای پذیرفتن، روی این پیام کلیک کنید.'
+    var notif = new Notification(' شما یک درخواست دوستی از'+'@'+r+' دارید', {lang:'fa-IR', dir:'rtl', body:notifBody})
+      $('.search_resault_user_profile_friendRec[username="'+r+'"]').attr('reqStatus','waitForMe')
+      $('.search_resault_user_profile_friendRec[username="'+r+'"] div p').text('دریافت شده');
+      $('.search_resault_user_profile_friendRec[username="'+r+'"] div span').html('access_time')
+      $('.search_resault_user_profile_friendRec[username="'+r+'"]').css({'background-color':'#00695C','border': 'none','color': 'white'});
+      $('.search_resault_user_profile_friendRec[username="'+r+'"] div p').css({'color': 'white'});
+    $('.third_user_profile_friend_req[username="'+r+'"]').attr('reqStatus','waitForMe')
+    $('.third_user_profile_friend_req[username="'+r+'"]').text('دریافت شده');
+    $('.third_user_profile_friend_req[username="'+r+'"]').css({'background-color':'#00695C','border': 'none','color': 'white'});
+  })
+  socket.on('cancelForFriendship', function (r) {
+    $('.search_resault_user_profile_friendRec[username="'+r+'"]').attr('reqStatus','false')
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div p').text('درخواست دوستی');
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div span').html('access_time')
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div p').css({'color': 'var(--logo)'});
+    $('.search_resault_user_profile_friendRec[username="'+r+'"]').css({'background':'none','border': 'solid var(--logo) 1px ','color': 'var(--logo)'});
+    $('.third_user_profile_friend_req[username="'+r+'"]').attr('reqStatus','false')
+    $('.third_user_profile_friend_req[username="'+r+'"]').text('درخواست دوستی');
+    $('.third_user_profile_friend_req[username="'+r+'"]').css({'background':'none','border': 'solid var(--logo) 1px ','color': 'var(--logo)'});
+    //$(`.third_user_plans_blur`).css({'visibility':'visible', 'opacity':'1'});
+  })
+  socket.on('acceptedFriendship', function (r) {
+    $('.search_resault_user_profile_friendRec[username="'+r+'"]').attr('reqStatus','true')
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div p').text('دوست هستید');
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div span').html('person');
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div p').css({'color': 'var(--logo)'});
+    $('.search_resault_user_profile_friendRec[username="'+r+'"]').css({'background':'none','border': 'solid var(--logo) 1px ','color': 'var(--logo)'});
+    $('.third_user_profile_friend_req[username="'+r+'"]').attr('reqStatus','true')
+    $('.third_user_profile_friend_req[username="'+r+'"]').text('دوست هستید');
+    $('.third_user_profile_friend_req[username="'+r+'"]').css({'background':'none','border': 'solid var(--logo) 1px ','color': 'var(--logo)'});
+    //$(`.third_user_plans_blur`).css({'visibility':'visible', 'opacity':'1'});
+    let friends = $(`.third_user_profile_friendNumber[username=${r}]`).html();
+    $(`.third_user_profile_friendNumber[username=${r}]`).html(+friends+1);
+    let friendsS = $(`.search_resault_user_social_friendsNum[username=${r}]`).html();
+    $(`.search_resault_user_social_friendsNum[username=${r}]`).html(+friendsS+1);
+    let mfriendsS = $(`.search_resault_user_social_friendsNum[username=${loginUser}]`).html();
+    $(`.search_resault_user_social_friendsNum[username=${loginUser}]`).html(+mfriendsS+1);
+  })
+  socket.on('canceledFriendship', function (r) {
+    $('.search_resault_user_profile_friendRec[username="'+r+'"]').attr('reqStatus','false')
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div p').text('درخواست دوستی');
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div span').html('aforward')
+    $('.search_resault_user_profile_friendRec[username="'+r+'"] div p').css({'color': 'var(--logo)'});
+    $('.search_resault_user_profile_friendRec[username="'+r+'"]').css({'background':'none','border': 'solid var(--logo) 1px ','color': 'var(--logo)'});
+    $('.third_user_profile_friend_req[username="'+r+'"]').attr('reqStatus','false')
+    $('.third_user_profile_friend_req[username="'+r+'"]').text('درخواست دوستی');
+    $('.third_user_profile_friend_req[username="'+r+'"]').css({'background':'none','border': 'solid var(--logo) 1px ','color': 'var(--logo)'});
+    //$(`.third_user_plans_blur`).css({'visibility':'visible', 'opacity':'1'});
+    let friends = $(`.third_user_profile_friendNumber[username=${r}]`).html();
+    $(`.third_user_profile_friendNumber[username=${r}]`).html(+friends-1);
+    let friendsS = $(`.search_resault_user_social_friendsNum[username=${r}]`).html();
+    $(`.search_resault_user_social_friendsNum[username=${r}]`).html(+friendsS-1);
+    let mfriendsS = $(`.search_resault_user_social_friendsNum[username=${loginUser}]`).html();
+    $(`.search_resault_user_social_friendsNum[username=${loginUser}]`).html(+mfriendsS-1);
+  })
+
+  //close notif section
+  $('.primary').on('click', '.notif_section_close', function (e) {
+    $('.notif_section').css({'display':'none'});
+    $('.notif_section p').empty();
+    localStorage.setItem('notifSection', 'close')
+  })
+  $('.primary').on('click', '.confirm_email', function (e) {
+    $('.notif_section').css({'display':'none'});
+    $('.confirm_email_window').css({'display':'flex'});
+    $('.blackArea_confirmE').css({'display':'block'});
+    $('.notif_section p').empty();
+    $('.blackArea_1').trigger('click');
+    socket.emit('confirmEmail', loginUser)
+  })
+  //get email verification code
+  socket.on('verifyEmailCode', function (code) {
+    emailVerifyCode = code;
+    alert(emailVerifyCode)
+  });
+  var verifiedEmail;
+  socket.on('verifyEmailname', function (email) {
+    verifiedEmail = email;
+    $('.confirm_email_form p').append(`ما یک ایمیل حاوی یک کد شش رقمی به <span>${email}</span> ارسال کردیم.<br>
+    اگر این ایمیل شما نیست، <i> می توانید آن را تغییر دهید</i>.`)
+  });
+  $('.primary').on('submit', '.confirm_email_form' ,function (event) {
+    event.preventDefault();
+    var insertedCode = $('#confirmEmail').val();
+    if (insertedCode == emailVerifyCode) {
+      socket.emit('emailIsVerified', loginUser)
+      $('#signIn_submit').prop('disabled', true);
+      $('#emailVerifySubmit').css({'opacity': '.4', 'cursor': 'not-allowed'});
+    }else {
+      alert('کد وارد شده نامعتبر است')
+    }
+  });
+  socket.on('emailVerifySubmited', function () {
+    $('#signIn_submit').prop('disabled', false);
+    $('#emailVerifySubmit').css({'opacity': '1', 'cursor': 'pointer'});
+    $('.confirm_email_window').empty();
+    $('.confirm_email_window').append(
+      `<div class="dis_flex_dir_col_jsf_cntr_itmalign_cntr pos_abs_cntr">
+        <h1>ایمیل تایید شد</h1>
+        <div class="confirm_email_row dis_flex_dir_row_jsf_cntr_itmalign_cntr">
+          <button id="closeEmailVerify" class="submit" name="button">بازگشت</button>
+        </div>
+       </div>`
+    )
+  })
+  //close email verification section
+  $('.primary').on('click', '#closeEmailVerify', function (e) {
+    $('.blackArea_confirmE').trigger('click')
   })
 
 
+  //open a user page
+  $('.primary').on('click', '.open_user_page', function () {
+    $('.main_section_ctrl').css('display','block');
+    let username = $(this).attr('username');
+    if (username == loginUser) {
+      if ($('.myPlan_cont').length != 1) {
+        socket.emit('openUserPage', {username, loginUser})
+      }
+    }else {
+      socket.emit('openUserPage', {username, loginUser})
+    }
+  })
+  socket.on('openUserPage_res', function (res) {
+    let name = res.name, username= res.user, verified = res.verified;
+    let friends = res.friends, friendReqFromMe = res.friendReqTo, uses = res.uses;
+    let plans = res.res, c ='', friendReqToMe = res.friendReqFrom;
+    let reqStatus = 'false', reqIcon = 'aforward', reqTxt = 'درخواست دوستی', reqStyle = 'background : none';
+    //friend request status
+    friendReqFromMe.forEach((item, k) => {
+      if (item == loginUser) {
+        reqStatus = 'waitForHim';
+        reqIcon = 'access_time';
+        reqTxt = 'ارسال شده';
+        reqStyle = 'background-color : #E0F7FA';
+      }
+    });
+    friendReqToMe.forEach((item, k) => {
+      if (item == loginUser) {
+        reqStatus = 'waitForMe';
+        reqIcon = 'access_time';
+        reqTxt = 'دریافت شده';
+        reqStyle = 'background-color : #00695C; border:none; color:white;';
+      }
+    });
+    for (var i = 0; i < friends.length; i++) {
+      if (loginUser == friends[i]) {
+        reqStatus = 'true';
+        reqTxt = 'دوست هستید';
+        reqStyle = 'background : none; border: solid var(--logo) 1px; color:var(--logo);';
+        continue;
+      }
+    }
+    if (res.cert) {c = '<div class="verified third_user_profile_nameـverified" dir="rtl">تایید شده</div>'}
+    $('.main_section_main').empty();
+    $('.main_section_main').addClass('dis_flex_dir_row_jsf_cntr_itmalign_cntr');
+    $('.main_section_main').append(`
+      <div class="third_user_profile dis_flex_dir_col_jsf_cntr_itmalign_cntr">
+        <div class="third_user_profile_sec third_user_profile_pic_cont">
+          <img class="third_user_profile_pic pos_abs_cntr" src="" alt="">
+        </div>
+        <div class="third_user_profile_sec third_user_profile_name dis_flex_dir_col_jsf_cntr_itmalign_cntr">
+          <h1 class="dis_flex_dir_row_jsf_cntr_itmalign_cntr"> <a>${name}</a> ${c}</h1>
+          <p dir="ltr">@${username}</p>
+        </div>
+        <div class="third_user_profile_sec third_user_profile_friend_cont dis_flex_dir_row_jsf_cntr_itmalign_cntr">
+          <div class="third_user_profile_friend dis_flex_dir_rcol_jsf_cntr_itmalign_cntr" username="${username}">
+            <p>دوستان</p>
+            <p class="third_user_profile_friendNumber" username="${username}">${friends.length}</p>
+          </div>
+          <div style="${reqStyle}" class="third_user_profile_friend_req" username="${username}" reqStatus="${reqStatus}">
+            <p>${reqTxt}</p>
+          </div>
+        </div>
+      </div>
+      <div class="third_user_plans dis_flex_dir_row_jsf_cntr_itmalign_cntr"></div>
+      `)
+
+        console.log(plans);
+    for (var i = 0; i < plans.length; i++) {
+      let title = plans[i].title, category = plans[i].category, description = plans[i].description, condition = plans[i].condition;
+      let likeNum = Object.keys(plans[i].likes).length, replyNum = Object.keys(plans[i].replies).length;
+      let watcheNum = Object.keys(plans[i].watchs).length, useNum = Object.keys(plans[i].uses).length;
+      let date = plans[i].dateTime, author = plans[i].author; let iconMain, icon_2, icon_3, statusMain, status_2, status_3;
+      let planId = plans[i].planId; var cTime;
+      let createdDate = sinceTime(date);
+      let likeHtml = 'favorite_border', likeControler = 'false';
+      if (category == '') {category = 'پیش فرض';}
+      for (var j = 0; j < Object.keys(plans[i].likes).length; j++) {
+        if (plans[i].likes[j] == loginUser) {
+          likeHtml = 'favorite';
+          likeControler = 'true';
+        }
+      }
+      $('.third_user_plans').append(`
+        <div class="third_user_plan dis_flex_dir_row_jsf_cntr_itmalign_cntr third_user_plans_${condition}" isFriend="${reqStatus}" username="${username}" status="${condition}" id="${planId}" name="${title}">
+          <div class="third_user_plans_blur  dis_flex_dir_col_jsf_cntr_itmalign_cntr" for="${planId}">
+            <span class="material-icons third_user_plan_info_icon third_user_plan_info_icon_blured">lock</span>
+            <p>این برنامه تنها برای دوستان ${name} قابل مشاهده است.</p>
+            <div class="third_user_plans_friendRec">
+              <span>درخواست دوستی</span>
+            </div>
+          </div>
+          <div class="third_user_plan_body">
+            <div class="third_user_plan_body_hed dis_flex_dir_row_jsf_cntr_itmalign_cntr">
+              <div class="third_user_plan_body_title" for="${planId}">
+                <h5>${category}/</h5>
+                <h1><strong>${title}</strong></h1>
+                <div class="third_user_plan_body_username">
+                  <p dir="rtl"><time value="${date}">${createdDate} </time>توسط <a dir="ltr">@${author}</a> ساخته شد.</p>
+                </div>
+              </div>
+            </div>
+            <div class="third_user_plan_body_content"><p>${description}</p></div>
+            <div class="third_user_plan_info dis_flex_dir_rrow_jsf_cntr_itmalign_cntr third_user_plan_${condition}" for="${planId}">
+              <div numCont="${planId}likeNumCont" class=" third_user_plan_info_icon_cont third_user_plan_info_icon_cont_like dis_flex_dir_row_jsf_cntr_itmalign_cntr" username="${username}" for="${planId}" status="${condition}" liked="${likeControler}">
+                <span class="material-icons myPlan_info_icon third_user_plan_info_icon_like" for="${planId}">${likeHtml}</span>
+                <p id="${planId}likeNumCont" for="${planId}">${likeNum}</p>
+              </div>
+              <div class=" third_user_plan_info_icon_cont third_user_plan_info_icon_cont_watch dis_flex_dir_row_jsf_cntr_itmalign_cntr" username="${username}">
+                <span class="material-icons third_user_plan_info_icon myPlan_info_icon_watch">remove_red_eye</span>
+                <p>${watcheNum}</p>
+              </div>
+              <div class=" third_user_plan_info_icon_cont third_user_plan_info_icon_cont_reply dis_flex_dir_row_jsf_cntr_itmalign_cntr" for="${planId}" status="${condition}">
+                <span class="material-icons third_user_plan_info_icon third_user_plan_info_icon_reply" for="${planId}">chat</span>
+                <p for="${planId}">${replyNum}</p>
+              </div>
+              <div class=" third_user_plan_info_icon_cont third_user_plan_info_icon_cont_use dis_flex_dir_row_jsf_cntr_itmalign_cntr" for="${planId}" status="${condition}">
+                <span class="material-icons third_user_plan_info_icon third_user_plan_info_icon_use" for="${planId}">call_split</span>
+                <p for="${planId}">${useNum}</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        `)
+        if (condition == 'prsnl') {
+          $(`<div class="third_user_plan_body_status" id="third_user_plan_info_icon_cont_status_${planId}" for="${planId}" primary="${condition}" isOpen="false">
+            <span class="material-icons third_user_plan_info_icon pos_abs_cntr" id="third_user_plan_info_icon_status_${iconMain}">lock</span>
+          </div>`).insertAfter(`.third_user_plan_body_title[for="${planId}"]`);
+        }
+      }
+    })
+
+
+    //hover on locked plan
+    $('.primary').on('mouseover', '.third_user_plan', function (e) {
+      if ($('.third_user_plan').attr('isFriend') != 'true') {
+        let id = $(this).attr('id'), status = $(this).attr('status');
+        if (status == 'prsnl') {
+          $(`.third_user_plans_blur[for="${id}"]`).css({'visibility':'visible', 'opacity':'1'});
+        }
+      }
+    })
+    $('.primary').on('mouseout', '.third_user_plan', function (e) {
+      let id = $(this).attr('id');
+      $(`.third_user_plans_blur[for="${id}"]`).css({'opacity':'0'});
+      setTimeout(function () {
+        $(`.third_user_plans_blur[for="${id}"]`).css({'visibility':'hi'});
+      }, 600);
+    })
+    //preventDefault click on blur
+    $('.primary').on('click', '.third_user_plans_blur', function (e) {
+      e.stopPropagation();
+    })
+    //watch a plan
+    $('.primary').on('click', '.third_user_plan', function (e) {
+      let targetUser = $(this).attr('username');
+      let pID = $(this).attr('id');
+      socket.emit('watch', {pID, loginUser, targetUser});
+    })
+
+
+    //notif when my post liked
+    socket.on('yourPlanLiked', function (n) {
+      let notifBody = n.name+' یکی از برنامه شما را پسندید';
+      var notif = new Notification('یکی از برنامه های شما مورد پسند قرار گرفت', {lang:'fa-IR', dir:'rtl', body:notifBody})
+      let pID = n.pId;
+      let numContId = $('.myPlan_info_icon_cont_like[for="'+pID+'"]').attr('numCont');
+      let likeNumber = $('#'+numContId+'').html();
+      $('#'+numContId+'').html(+likeNumber+1);
+      //notif.onclick = function () {
+      //  location.href="signUp.html";
+      //}
+    })
+    socket.on('yourPlanunLiked', function (n) {
+      let pID = n.pId;
+      let numContId = $('.myPlan_info_icon_cont_like[for="'+pID+'"]').attr('numCont');
+      let likeNumber = $('#'+numContId+'').html();
+      $('#'+numContId+'').html(+likeNumber-1);
+    })
 
 
 
 
+
+   //console.log(moment().locale('fa').format('YYYY/M/D'));
 
 
 

@@ -7,7 +7,9 @@ const nodemailer = require('nodemailer');
 const io = require('socket.io')(http);
 const date = require('./modules/Date.js');
 const mongoClient = mongo.MongoClient;
-//mongo host
+const {detect} = require('detect-browser');
+const browser = detect();
+var moment = require('jalali-moment');
 const url = 'mongodb://localhost:27017/mydb'
 
 //server connection
@@ -21,6 +23,7 @@ app.use(express.static('src'));
 app.use(express.static('static'))
 
 
+//string generator
 function getstring() {
   var poid = '';
   const list = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'.split('');
@@ -30,10 +33,85 @@ function getstring() {
   }
   return poid;
 }
-
+//code generator
+function codeGenerator() {
+  var a = Math.round(Math.random()*9);
+  var b = Math.round(Math.random()*9);
+  var c = Math.round(Math.random()*9);
+  var d = Math.round(Math.random()*9);
+  var e = Math.round(Math.random()*9);
+  var f = Math.round(Math.random()*9);
+  var code = a+''+b+''+c+''+d+''+e+''+f;
+  return code;
+}
+console.log(moment().locale('fa').format('YYYY/M/D HH:mm:ss'));
 //socket
 io.on('connection', function (socket) {
   console.log('Connection');
+
+  //send notification
+  const confirmEmailNotif = [{title:'تایید ایمیل', content:` <b>هشدار مهم:</b> ما برای احراز هویت و همچنین بازیابی اطلاعات شخصی شما به یک ایمیل تایید شده نیاز داریم.<span class="confirm_email"> لطفا ایمیل خود را تایید کنید</span>. اگر ایمیل شما تایید نشود متاسفانه حساب شما پس از سه روز حذف خواهد شد. <a href="#">بیشتر بدانید</a> `}];
+
+  socket.on('confirmEmail', function (user) {
+    console.log(user);
+    mongoClient.connect(url, {useUnifiedTopology:true}, function (err, db) {
+      if (err) return console.log('err29: '+err.message);
+      db.db('main_db').collection('userInfo').find({username:user}, {projection:{_id:0, "email.e":1}}).toArray(function (e, r) {
+        if (e) return console.log('err30: '+e.message);
+        let userEmail = r[0].email.e;
+        socket.emit('verifyEmailname', userEmail);
+        //sending Authentication email
+        const transporter = nodemailer.createTransport({
+          host: 'smpt.gmail.com',
+          port:5001,
+          secure: false,
+          service: 'gmail',
+          auth: {
+            user: 'mostafasarmad96@gmail.com',
+            pass: 'M09370030491'
+          }
+        });
+        var gen = codeGenerator();
+        const mailOptions = {
+          from: 'mostafasarmad96@gmail.com',
+          to: ''+userEmail+'',
+          subject: 'Verify your email address on Plano',
+          html: `<div style="width:500px; height:700px;display:flex; flex-direction:column; justify-content:center; align-items:center; position:absolute; left:50%;top:50%;transform:translate(-50%, -50%); text-align:center;">
+                <div style="width:400px; height:300px; position:relative; text-align:center;border:solid #dadce0 thin;border-radius: 8px;padding: 40px 20px;">
+                  <div style="width:400px;border-bottom:solid #dadce0 thin;">
+                    <h1>احراز هویت</h1>
+                    <h3>کد فعالسازی آدرس ایمیل حساب شما در پلنو،<br>به نام کاربری <b style="color:#2ec6f8;">${user}</b> </h3>
+                  </div>
+                  <p >کد اعتبار سنجی ایمیل شما <b style="color:#2ec6f8;">${gen}</b> است.</p>
+                  <p>لطفا این کد را در قسمت مشخص شده در سایت وارد نمایید.</p>
+                  <p style="padding-top:70px;color:#0000008a;font-size: 9px;line-height: 18px;">اگر این نام کاربری متعلق به شما نیست، یا شما اقدام به این عملیات نکرده اید، این پیام را نادیده بگیرید.</p>
+                  <div dir="rtl" style="position:relative; text-align:center;color:#0000008a;font-size: 11px;line-height: 18px;">
+                    &copy۱۳۹۹ همه ی حقوق برای <a style="padding-right:0;" >پلانو</a> محفوظ است.
+                  </div>
+                </div>
+              </div>`
+        };
+        transporter.sendMail(mailOptions, function(error, info){
+          if (error) {
+             console.log(error);
+           } else {
+             console.log('Email sent: ' + info.response);
+             socket.emit('verifyEmailCode', gen);
+           }
+        });
+      })
+    })
+  })
+  //submit email verification in database
+  socket.on('emailIsVerified', function (user) {
+    mongoClient.connect(url, {useUnifiedTopology:true}, function (err, db) {
+      if (err) return console.log('err31: '+err.message);
+      db.db('main_db').collection('userInfo').updateOne({username:user}, {$set:{'email.v':true}}, function (e, r) {
+        if (e) return console.log('err32: '+e.message);
+        socket.emit('emailVerifySubmited')
+      })
+    })
+  })
 
   //check username exists
   socket.on('checkUsername', function (user) {
@@ -91,7 +169,8 @@ io.on('connection', function (socket) {
         friends:[],
         friendReqFromMe:[],
         friendReqToMe:[],
-        searchClick:0
+        searchClick:0,
+        proPic : ''
       };
       db.db("main_db").collection("userInfo").insertOne(insertInfo, function(errInfo, res) {
         if (errInfo) return console.log('err8: '+errInfo.message);
@@ -105,6 +184,10 @@ io.on('connection', function (socket) {
   socket.on('verify', function (v) {
     var loginUser = v.loginUser, loginPass = v.loginPass;
     let name, username, cert, proPic;
+    //join to myself
+    socket.join(loginUser);
+    socket.join(loginUser+"_personal");
+    console.log('joined to '+loginUser+" and "+loginUser+"_personal");
     mongoClient.connect(url,{useUnifiedTopology:true},function (err, db) {
       if (err) return console.log('err9: '+err.message);
       else {
@@ -117,10 +200,15 @@ io.on('connection', function (socket) {
               name = resVerify[0].name;
               username = resVerify[0].username;
               cert = resVerify[0].verified;
+              emailConfirm = resVerify[0].email.v;
               if (resVerify[0].proPic) {
                 proPic = resVerify[0].proPic;
               }
               socket.emit('verifyRes', {name, username, proPic, cert});
+              if (emailConfirm == 'Not verified') {
+                console.log(emailConfirm);
+                socket.emit('confirmEmailNotif', confirmEmailNotif)
+              }
             }
           }
         })
@@ -148,6 +236,7 @@ io.on('connection', function (socket) {
         plan['replies'] = {};
         plan['watchs'] = [];
         plan['uses'] = {};
+        plan['suggestions'] = {};
         plan['verify'] = false;
         plan['dateTime'] = date.dateTime();
         plan['modifyTime'] = date.dateTime();
@@ -182,34 +271,43 @@ io.on('connection', function (socket) {
 
   //like a plan
   socket.on('like', function (l) {
-    let u = l.loginUser, pId = l.pID;
+    let u = l.targetUser, pId = l.pID, myUser = l.loginUser, action = true;
     mongoClient.connect(url, {useUnifiedTopology:true}, function (err, db) {
       if (err) return console.log('err16: '+err.message);
-      db.db(u).collection('plans').updateOne({planId:pId},{$push:{likes:u}},function (e, r) {
+      db.db(u).collection('plans').updateOne({planId:pId},{$push:{likes:myUser}},function (e, r) {
         if (e) return console.log('err13: '+e.message);
-        db.close();
+        else {
+          db.db('main_db').collection('userInfo').find({username:myUser},{projection:{_id:0, name:1}}).toArray(function (er, res) {
+            if (er) return console.log('err33: '+er.message);
+            let name = res[0].name;
+            socket.broadcast.emit('changeLikeIcon', {u, pId, action})
+            socket.to(u+'_personal').emit('yourPlanLiked', {myUser, pId, name})
+            db.close();
+          })
+        }
       })
     })
   })
   //unlike a plan
   socket.on('unlike', function (l) {
-    let u = l.loginUser, pId = l.pID;
+    let u = l.targetUser, pId = l.pID, myUser = l.loginUser, action = false;
     mongoClient.connect(url, {useUnifiedTopology:true}, function (err, db) {
       if (err) return console.log('err17: '+err.message);
-      db.db(u).collection('plans').updateOne({planId:pId},{$pull:{likes:u}},function (e, r) {
+      db.db(u).collection('plans').updateOne({planId:pId},{$pull:{likes:myUser}},function (e, r) {
         if (e) return console.log('err18: '+e.message);
+        socket.broadcast.emit('changeLikeIcon', {u, pId, action})
+        socket.to(u+'_personal').emit('yourPlanunLiked', {myUser, pId})
         db.close();
       })
     })
   })
   //watch a plan
   socket.on('watch', function (l) {
-    let u = l.loginUser, pId = l.pID;
+    let u = l.targetUser, pId = l.pID, myUser = l.loginUser;
     mongoClient.connect(url, {useUnifiedTopology:true}, function (err, db) {
       if (err) return console.log('err19: '+err.message);
-      db.db(u).collection('plans').updateOne({planId:pId},{$push:{watchs:u}},function (e, r) {
+      db.db(u).collection('plans').updateOne({planId:pId},{$push:{watchs:myUser}},function (e, r) {
         if (e) return console.log('err20: '+e.message);
-        console.log(r);
         db.close();
       })
     })
@@ -238,7 +336,6 @@ io.on('connection', function (socket) {
                         //console.log(tR);
                         timeRes.push(tR);
                         srchRes.push(item);
-                        console.log(tR);
                         if (i+1 == r.length) {
                           //console.log(c);
                           resolve([srchRes, timeRes])
@@ -281,9 +378,10 @@ io.on('connection', function (socket) {
       db.db('main_db').collection('userInfo').updateOne({username:to},{$push:{friendReqToMe:from}}, function (e, r) {
         if (e) return console.log('err25: '+e.message);
         else {
-          db.db('main_db').collection('userInfo').updateOne({username:from},{$push:{friendReqFromMe:to}}, function (e, r) {
-            if (e) return console.log('err26: '+e.message);
-            socket.emit('requestedForFriendship', to)
+          db.db('main_db').collection('userInfo').updateOne({username:from},{$push:{friendReqFromMe:to}}, function (er, rr) {
+            if (er) return console.log('err26: '+er.message);
+            socket.emit('requestedForFriendship', to);
+            io.to(to+"_personal").emit('requestForFriendship', from)
             db.close();
           })
         }
@@ -294,14 +392,56 @@ io.on('connection', function (socket) {
   //cancel friend request
   socket.on('cancelFriendRec', function (u) {
     let from = u.loginUser, to = u.user;
-    console.log('cancel ',to, from);
     mongoClient.connect(url, {useUnifiedTopology:true}, function (err, db) {
       db.db('main_db').collection('userInfo').updateOne({username:to},{$pull:{friendReqToMe:from}}, function (e, r) {
         if (e) return console.log('err27: '+e.message);
         else {
-          db.db('main_db').collection('userInfo').updateOne({username:from},{$pull:{friendReqFromMe:to}}, function (e, r) {
-            if (e) return console.log('err28: '+e.message);
+          db.db('main_db').collection('userInfo').updateOne({username:from},{$pull:{friendReqFromMe:to}}, function (er, rr) {
+            if (er) return console.log('err28: '+er.message);
             socket.emit('canceledForFriendship', to)
+            io.to(to+"_personal").emit('cancelForFriendship', from)
+            db.close();
+          })
+        }
+      })
+
+    })
+  })
+  //accept friendShip
+  socket.on('acceptFriendRec', function (u) {
+    let from = u.loginUser, to = u.user;
+    mongoClient.connect(url, {useUnifiedTopology:true}, function (err, db) {
+      db.db('main_db').collection('userInfo').updateOne({username:to},{$push:{friends:from}}, function (e, r) {
+        if (e) return console.log('err34: '+e.message);
+        else {
+          db.db('main_db').collection('userInfo').updateOne({username:from},{$push:{friends:to}}, function (er, rr) {
+            if (er) return console.log('err35: '+er.message);
+            db.db('main_db').collection('userInfo').updateOne({username:to},{$pull:{friendReqFromMe:from}}, function (err, rrr) {
+              if (err) return console.log('err36: '+err.message);
+              db.db('main_db').collection('userInfo').updateOne({username:from},{$pull:{friendReqToMe:to}}, function (errr, rrrr) {
+                if (errr) return console.log('err37: '+errr.message);
+                socket.emit('acceptFriendship', to)
+                io.to(to+"_personal").emit('acceptedFriendship', from)
+                db.close();
+              });
+            });
+          })
+        }
+      })
+
+    })
+  })
+  //cancel friendShip
+  socket.on('cancelFriendShip', function (u) {
+    let from = u.loginUser, to = u.user;
+    mongoClient.connect(url, {useUnifiedTopology:true}, function (err, db) {
+      db.db('main_db').collection('userInfo').updateOne({username:to},{$pull:{friends:from,friendReqToMe:from}},{"multi":true}, function (e, r) {
+        if (e) return console.log('err34: '+e.message);
+        else {
+          db.db('main_db').collection('userInfo').updateOne({username:from},{$pull:{friends:to,friendReqFromMe:to}},{"multi":true}, function (er, rr) {
+            if (er) return console.log('err35: '+er.message);
+            socket.emit('FcanceledForFriendship', to)
+            io.to(to+"_personal").emit('canceledFriendship', from)
             db.close();
           })
         }
@@ -310,11 +450,23 @@ io.on('connection', function (socket) {
     })
   })
 
+  //open user page
+  socket.on('openUserPage', function (u) {
+    let user = u.username, myUser = u.loginUser;
+    //join to user
+    socket.join(user);
+    console.log('joined to '+user);
+    mongoClient.connect(url, {useUnifiedTopology:true}, function (err, db) {
+      db.db('main_db').collection('userInfo').find({username:user},{projection:{_id:0, email:0, pass:0, searchClick:0}}).toArray(function (e, r) {
+        if (e) return console.log('err29: '+e.message);
+        db.db(user).collection('plans').find({condition:{$nin:['prvt']}}).toArray(function (er, res) {
+          if (er) return console.log('err29: '+er.message);
+          socket.emit('openUserPage_res', {user, res, name : r[0].name, verified : r[0].verified, friends : r[0].friends, friendReqTo : r[0].friendReqToMe, friendReqFrom : r[0].friendReqFromMe, uses : r[0].uses})
+        })
+      })
+    })
 
-
-
-
-
+  })
 
 
 
